@@ -56,7 +56,7 @@ async fn main() {
 
     let cors = CorsLayer::new()
         .allow_origin(
-            "https://auth-api-frontend.vercel.app"
+            "https://auth-api-rust-two.vercel.app"
                 .parse::<HeaderValue>()
                 .unwrap(),
         )
