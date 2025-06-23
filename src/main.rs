@@ -61,7 +61,7 @@ async fn main() {
                 .unwrap(),
         )
         .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
-        .allow_headers(HeaderValue::from_static("*"))
+        .allow_headers(tower_http::cors::Any)
         .allow_credentials(true);
 
     let app = Router::new()

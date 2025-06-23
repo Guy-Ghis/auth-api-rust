@@ -60,23 +60,30 @@ repo-root/
        // ...
        .layer(cors);
    ```
+
 6. **Redeploy** after any config change.
 
 ### Frontend (Vercel)
+
 1. **Set the API base URL** in `frontend/.env`:
-   ```
+
+   ```env
    VITE_API_BASE=https://your-backend.up.railway.app
    ```
+
 2. **In Vercel dashboard**, set the same env variable for Production and Preview.
 3. **OpenAPI client config** (already set):
+
    ```ts
    BASE: import.meta.env.VITE_API_BASE || '',
    ```
+
 4. **Rebuild and redeploy** after any `.env` change.
 
 ---
 
 ## Troubleshooting
+
 - **404 errors:**
   - Make sure API calls go to your backend, not the frontend URL.
   - Check the full request URL in browser DevTools → Network tab.
@@ -95,6 +102,7 @@ repo-root/
 ## Endpoints
 
 ### `POST /register`
+
 Register a new user.
 
 **Request Body:**
@@ -138,6 +146,7 @@ curl -X POST http://localhost:3000/register \
 ---
 
 ### `POST /login`
+
 Authenticate a user and receive a JWT.
 
 **Request Body:**
@@ -168,11 +177,13 @@ curl -X POST http://localhost:3000/login \
 ---
 
 ### `POST /refresh-token`
+
 Get a new access token using the refresh token (httpOnly cookie).
 
 ---
 
 ### `GET /admin`
+
 Accessible only to users with the `Admin` role.
 
 **Headers:**
