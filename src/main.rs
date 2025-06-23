@@ -33,7 +33,12 @@ async fn main() {
     #[derive(OpenApi)]
     #[openapi(
         info(title = "Auth API", description = "A simple auth API"),
-        paths(auth::login, protected::admin_route, auth::register),
+        paths(
+            auth::login,
+            protected::admin_route,
+            auth::register,
+            auth::refresh_token
+        ),
         components(schemas(
             models::User,
             models::Role,
@@ -56,6 +61,7 @@ async fn main() {
         .route("/admin", get(protected::admin_route))
         .route("/login", post(auth::login))
         .route("/register", post(auth::register))
+        .route("/refresh-token", post(auth::refresh_token))
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .layer(CorsLayer::permissive())
         .with_state(state);
