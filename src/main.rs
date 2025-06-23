@@ -5,6 +5,7 @@ use std::{
 };
 
 use axum::{
+    http::{HeaderValue, Method},
     routing::{get, post},
     Router,
 };
@@ -53,6 +54,16 @@ async fn main() {
         users: Arc::new(Mutex::new(vec![])),
     };
 
+    let cors = CorsLayer::new()
+        .allow_origin(
+            "https://auth-api-frontend.vercel.app"
+                .parse::<HeaderValue>()
+                .unwrap(),
+        )
+        .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
+        .allow_headers(HeaderValue::from_static("*"))
+        .allow_credentials(true);
+
     let app = Router::new()
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
@@ -63,7 +74,7 @@ async fn main() {
         .route("/register", post(auth::register))
         .route("/refresh-token", post(auth::refresh_token))
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
-        .layer(CorsLayer::permissive())
+        .layer(cors)
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
