@@ -19,7 +19,7 @@ export type OpenAPIConfig = {
 };
 
 export const OpenAPI: OpenAPIConfig = {
-    BASE: import.meta.env.VITE_API_BASE || '',
+    BASE: import.meta.env.VITE_API_BASE,
     VERSION: '0.1.0',
     WITH_CREDENTIALS: true,
     CREDENTIALS: 'include',
