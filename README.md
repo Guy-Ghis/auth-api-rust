@@ -4,7 +4,7 @@ A simple authentication API built with Rust and [Axum](https://github.com/tokio-
 
 ## Features
 
-- **User Registration**: Register with a username and password. All new users are assigned the `User` role.
+- **User Registration**: Register with a first name, last name, email, and password. All new users are assigned the `User` role.
 - **User Login**: Obtain a JWT token by providing valid credentials.
 - **Role-based Access**:
   - `/admin` route accessible only to users with the `Admin` role.
@@ -24,15 +24,39 @@ Register a new user.
 
 ```json
 {
-  "username": "string",
-  "password": "string"
+  "first_name": "John",
+  "last_name": "Doe",
+  "email": "john@example.com",
+  "password": "yourpassword"
+}
+```
+
+**Minimal Request Body (if only email and password are required):**
+
+```json
+{
+  "email": "john@example.com",
+  "password": "yourpassword"
 }
 ```
 
 **Response:**
 
 - `201 Created` on success
-- `400 Bad Request` if username or password is missing
+- `400 Bad Request` if required fields are missing
+
+**Example curl command:**
+
+```bash
+curl -X POST http://localhost:3000/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "first_name": "John",
+    "last_name": "Doe",
+    "email": "john@example.com",
+    "password": "yourpassword"
+  }'
+```
 
 ---
 
@@ -44,8 +68,8 @@ Authenticate a user and receive a JWT.
 
 ```json
 {
-  "username": "string",
-  "password": "string"
+  "email": "john@example.com",
+  "password": "yourpassword"
 }
 ```
 
@@ -53,6 +77,17 @@ Authenticate a user and receive a JWT.
 
 - `200 OK` with `{ "token": "..." }` on success
 - `401 Unauthorized` on failure
+
+**Example curl command:**
+
+```bash
+curl -X POST http://localhost:3000/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "john@example.com",
+    "password": "yourpassword"
+  }'
+```
 
 ---
 
@@ -69,6 +104,13 @@ Accessible only to users with the `Admin` role.
 - `200 OK` with user info if authorized
 - `403 Forbidden` if not an admin
 
+**Example curl command:**
+
+```bash
+curl -X GET http://localhost:3000/admin \
+  -H "Authorization: Bearer <your_token_here>"
+```
+
 ---
 
 ## Getting Started
@@ -82,7 +124,7 @@ Accessible only to users with the `Admin` role.
 
 Create a `.env` file in the project root with the following variables:
 
-```rust
+```env
 JWT_SECRET=your-secret-key
 JWT_SALT=your-salt-16bytes
 JWT_EXPIRATION=86400

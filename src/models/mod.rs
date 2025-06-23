@@ -1,2 +1,2 @@
 pub mod user;
-pub use user::{User, Role, LoginRequest, LoginResponse};
+pub use user::{LoginRequest, LoginResponse, Role, User};

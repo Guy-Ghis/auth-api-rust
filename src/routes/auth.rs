@@ -6,6 +6,7 @@ use serde_json::json;
 use utoipa::OpenApi;
 
 use crate::middleware::auth::Claims;
+use crate::models::user::RegisterRequest;
 use crate::models::{LoginRequest, LoginResponse, Role};
 use crate::AppState;
 
@@ -18,7 +19,7 @@ pub struct AuthApi;
 #[utoipa::path(
     post,
     path = "/register",
-    request_body = LoginRequest,
+    request_body = RegisterRequest,
     responses(
         (status = 201, description = "User registered successfully"),
         (status = 400, description = "Bad request")
@@ -27,9 +28,9 @@ pub struct AuthApi;
 
 pub async fn register(
     State(state): State<AppState>,
-    Json(payload): Json<LoginRequest>,
+    Json(payload): Json<RegisterRequest>,
 ) -> impl IntoResponse {
-    if payload.username.is_empty() || payload.password.is_empty() {
+    if payload.email.is_empty() || payload.password.is_empty() {
         return (
             StatusCode::BAD_REQUEST,
             Json(json!({"error": "Username and password are required"})),
@@ -44,8 +45,10 @@ pub async fn register(
 
     let new_user = crate::models::User {
         id: users.len() as i32 + 1, // Simple ID generation
-        username: payload.username,
+        email: payload.email,
         password: hashed_password.to_string(),
+        first_name: payload.first_name,
+        last_name: payload.last_name,
         role: Role::User,
     };
 
@@ -74,7 +77,7 @@ pub async fn login(
 ) -> impl IntoResponse {
     let users = state.users.lock().unwrap();
 
-    let user = users.iter().find(|u| u.username == payload.username);
+    let user = users.iter().find(|u| u.email == payload.email);
     if user.is_none()
         || bcrypt::verify(payload.password.as_bytes(), &user.unwrap().password).ok() != Some(true)
     {
@@ -86,15 +89,17 @@ pub async fn login(
     }
     // In production, verify against a database
     let claims = Claims {
-        sub: payload.username.clone(),
+        sub: payload.email.clone(),
         role: user.unwrap().role.clone(),
         exp: (chrono::Utc::now() + chrono::Duration::hours(24)).timestamp() as usize,
     };
 
+    let config = state.config.clone();
+
     let token = encode(
         &Header::default(),
         &claims,
-        &EncodingKey::from_secret("your-secret-key".as_ref()),
+        &EncodingKey::from_secret(config.jwt_secret.as_ref()),
     )
     .unwrap();
 

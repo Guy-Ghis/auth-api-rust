@@ -1,4 +1,8 @@
-use std::sync::{Arc, Mutex};
+use crate::utils::load_env;
+use std::{
+    sync::{Arc, Mutex},
+    vec,
+};
 
 use axum::{
     routing::{get, post},
@@ -19,7 +23,8 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-pub  struct AppState {
+pub struct AppState {
+    pub config: Arc<utils::Config>,
     pub users: Arc<Mutex<Vec<models::User>>>,
 }
 
@@ -38,14 +43,20 @@ async fn main() {
     )]
     struct ApiDoc;
 
-    let state = AppState { users: Arc::new(Mutex::new(vec![])) };
+    let state = AppState {
+        config: Arc::new(load_env()),
+        users: Arc::new(Mutex::new(vec![])),
+    };
 
     let app = Router::new()
-    .layer(axum::middleware::from_fn(auth_middleware))
-    .route("/admin", get(protected::admin_route))
-    .route("/login", post(auth::login))
-    .route("/register", post(auth::register))
-    .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            auth_middleware,
+        ))
+        .route("/admin", get(protected::admin_route))
+        .route("/login", post(auth::login))
+        .route("/register", post(auth::register))
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .layer(CorsLayer::permissive())
         .with_state(state);
 
