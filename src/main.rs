@@ -5,10 +5,10 @@ use std::{
 };
 
 use axum::{
-    http::{HeaderValue, Method},
     routing::{get, post},
     Router,
 };
+use sqlx::postgres::PgPoolOptions;
 use tower_http::cors::CorsLayer;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -25,12 +25,20 @@ use crate::{
 
 #[derive(Debug, Clone)]
 pub struct AppState {
+    pub db: sqlx::PgPool,
     pub config: Arc<utils::Config>,
     pub users: Arc<Mutex<Vec<models::User>>>,
 }
 
 #[tokio::main]
 async fn main() {
+    dotenvy::dotenv().ok();
+    let db_pool = PgPoolOptions::new()
+        .max_connections(5)
+        .connect(&std::env::var("DATABASE_URL").unwrap())
+        .await
+        .expect("Failed to connect to DB");
+
     #[derive(OpenApi)]
     #[openapi(
         info(title = "Auth API", description = "A simple auth API"),
@@ -51,33 +59,23 @@ async fn main() {
     struct ApiDoc;
 
     let state = AppState {
+        db: db_pool,
         config: Arc::new(load_env()),
         users: Arc::new(Mutex::new(vec![])),
     };
 
-    let cors = CorsLayer::new()
-        .allow_origin(
-            "https://auth-api-rust-two.vercel.app"
-                .parse::<HeaderValue>()
-                .unwrap(),
-        )
-        .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
-        .allow_headers([
-            axum::http::header::CONTENT_TYPE,
-            axum::http::header::AUTHORIZATION,
-        ])
-        .allow_credentials(true);
+    let cors = CorsLayer::very_permissive(); // Adjust for production
 
     let app = Router::new()
-        .layer(axum::middleware::from_fn_with_state(
-            state.clone(),
-            auth_middleware,
-        ))
         .route("/admin", get(protected::admin_route))
         .route("/login", post(auth::login))
         .route("/register", post(auth::register))
         .route("/refresh-token", post(auth::refresh_token))
         .route("/profile", get(protected::profile_route))
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            auth_middleware,
+        ))
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .layer(cors)
         .with_state(state);

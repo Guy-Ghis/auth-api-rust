@@ -40,5 +40,5 @@ pub async fn admin_route(Extension(user): Extension<Arc<User>>) -> impl IntoResp
     security(("api_key" = []))
 )]
 pub async fn profile_route(Extension(user): Extension<Arc<User>>) -> impl IntoResponse {
-    (StatusCode::OK, Json(user)).into_response()
+    (StatusCode::OK, Json(user))
 }

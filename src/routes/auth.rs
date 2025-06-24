@@ -5,13 +5,14 @@ use bcrypt::hash_with_salt;
 use jsonwebtoken::{encode, EncodingKey, Header};
 use rand::{distributions::Alphanumeric, Rng};
 use serde_json::json;
+use sqlx;
 use std::collections::HashMap;
 use std::sync::Mutex;
 use utoipa::OpenApi;
 
 use crate::middleware::auth::Claims;
 use crate::models::user::RegisterRequest;
-use crate::models::{LoginRequest, LoginResponse, Role};
+use crate::models::{LoginRequest, LoginResponse};
 use crate::AppState;
 
 const JWT_SALT: &[u8; 16] = b"your-secure-salt"; // Use a secure salt in production
@@ -42,33 +43,38 @@ pub async fn register(
     if payload.email.is_empty() || payload.password.is_empty() {
         return (
             StatusCode::BAD_REQUEST,
-            Json(json!({"error": "Username and password are required"})),
-        )
-            .into_response();
+            Json(json!({"error": "Email and password are required"})),
+        );
     }
 
     let hashed_password =
-        hash_with_salt(payload.password.as_bytes(), bcrypt::DEFAULT_COST, *JWT_SALT).unwrap(); // Use a secure salt in production
+        hash_with_salt(payload.password.as_bytes(), bcrypt::DEFAULT_COST, *JWT_SALT).unwrap();
 
-    let mut users = state.users.lock().unwrap();
-
-    let new_user = crate::models::User {
-        id: users.len() as i32 + 1, // Simple ID generation
-        email: payload.email,
-        password: hashed_password.to_string(),
-        first_name: payload.first_name,
-        last_name: payload.last_name,
-        role: Role::User,
-    };
-
-    users.push(new_user);
-
-    // Simulate user registration
-    (
-        StatusCode::CREATED,
-        Json(json!({"message": "User registered successfully"})),
+    let result = sqlx::query!(
+        "INSERT INTO users (email, password, first_name, last_name, role) VALUES ($1, $2, $3, $4, $5)",
+        payload.email,
+        hashed_password.to_string(),
+        payload.first_name,
+        payload.last_name,
+        "User"
     )
-        .into_response()
+    .execute(&state.db)
+    .await;
+
+    match result {
+        Ok(_) => (
+            StatusCode::CREATED,
+            Json(json!({"message": "User registered successfully"})),
+        ),
+        Err(sqlx::Error::Database(db_err)) if db_err.constraint() == Some("users_email_key") => (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"error": "Email already registered"})),
+        ),
+        Err(_) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(json!({"error": "Registration failed"})),
+        ),
+    }
 }
 
 #[utoipa::path(
@@ -84,55 +90,39 @@ pub async fn login(
     State(state): State<AppState>,
     Json(payload): Json<LoginRequest>,
 ) -> impl IntoResponse {
-    let users = state.users.lock().unwrap();
+    let user = sqlx::query_as!(User, "SELECT * FROM users WHERE email = $1", payload.email)
+        .fetch_optional(&state.db)
+        .await
+        .unwrap();
 
-    let user = users.iter().find(|u| u.email == payload.email);
-    if user.is_none()
-        || bcrypt::verify(payload.password.as_bytes(), &user.unwrap().password).ok() != Some(true)
-    {
-        return (
+    if let Some(user) = user {
+        if bcrypt::verify(payload.password.as_bytes(), &user.password).ok() == Some(true) {
+            // Create JWT claims and token
+            let claims = crate::middleware::auth::Claims {
+                sub: user.email.clone(),
+                role: user.role.clone(),
+                exp: (chrono::Utc::now() + chrono::Duration::minutes(10)).timestamp() as usize,
+            };
+            let token = encode(
+                &Header::default(),
+                &claims,
+                &EncodingKey::from_secret(state.config.jwt_secret.as_ref()),
+            )
+            .unwrap();
+
+            (StatusCode::OK, Json(LoginResponse { token }))
+        } else {
+            (
+                StatusCode::UNAUTHORIZED,
+                Json(json!({"error": "Invalid credentials"})),
+            )
+        }
+    } else {
+        (
             StatusCode::UNAUTHORIZED,
             Json(json!({"error": "Invalid credentials"})),
         )
-            .into_response();
     }
-    // In production, verify against a database
-    let claims = Claims {
-        sub: payload.email.clone(),
-        role: user.unwrap().role.clone(),
-        exp: (chrono::Utc::now() + chrono::Duration::minutes(10)).timestamp() as usize,
-    };
-
-    let config = state.config.clone();
-
-    let token = encode(
-        &Header::default(),
-        &claims,
-        &EncodingKey::from_secret(config.jwt_secret.as_ref()),
-    )
-    .unwrap();
-
-    // Generate refresh token
-    let refresh_token: String = rand::thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(64)
-        .map(char::from)
-        .collect();
-    // Store refresh token -> user email
-    REFRESH_TOKENS
-        .lock()
-        .unwrap()
-        .insert(refresh_token.clone(), payload.email.clone());
-    let cookie = format!(
-        "{}={}; HttpOnly; Path=/; Max-Age={}; SameSite=Lax",
-        REFRESH_TOKEN_COOKIE, refresh_token, REFRESH_TOKEN_EXPIRY_SECS
-    );
-
-    let mut response = (StatusCode::OK, Json(LoginResponse { token })).into_response();
-    response
-        .headers_mut()
-        .append(SET_COOKIE, cookie.parse().unwrap());
-    response
 }
 
 #[utoipa::path(
