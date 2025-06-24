@@ -48,7 +48,7 @@ export default function Profile() {
       const { OpenAPI } = await import("../api");
       OpenAPI.TOKEN = token;
       try {
-        const userData = await ProtectedService.adminRoute();
+        const userData = await ProtectedService.profileRoute();
         setUser(userData);
       } catch {
         setError("Failed to fetch profile. Please login again.");
