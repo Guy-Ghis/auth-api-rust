@@ -3,7 +3,7 @@ use serde_json::json;
 use std::sync::Arc;
 use utoipa::OpenApi;
 
-use crate::models::{Role, User};
+use crate::models::User;
 
 #[derive(OpenApi)]
 #[openapi(paths(admin_route, profile_route), components(schemas(User)))]
