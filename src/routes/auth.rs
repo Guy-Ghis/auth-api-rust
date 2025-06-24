@@ -10,10 +10,13 @@ use std::collections::HashMap;
 use std::sync::Mutex;
 use utoipa::OpenApi;
 
+
 use crate::middleware::auth::Claims;
 use crate::models::user::RegisterRequest;
 use crate::models::{LoginRequest, LoginResponse};
 use crate::AppState;
+use crate::models::User;
+
 
 const JWT_SALT: &[u8; 16] = b"your-secure-salt"; // Use a secure salt in production
 
@@ -95,36 +98,39 @@ pub async fn login(
         .await
         .unwrap();
 
-    if let Some(user) = user {
-        if bcrypt::verify(payload.password.as_bytes(), &user.password).ok() == Some(true) {
-            // Create JWT claims and token
-            let claims = crate::middleware::auth::Claims {
-                sub: user.email.clone(),
-                role: user.role.clone(),
-                exp: (chrono::Utc::now() + chrono::Duration::minutes(10)).timestamp() as usize,
-            };
-            let token = encode(
-                &Header::default(),
-                &claims,
-                &EncodingKey::from_secret(state.config.jwt_secret.as_ref()),
-            )
-            .unwrap();
-
-            (StatusCode::OK, Json(LoginResponse { token }))
+        if let Some(user) = user {
+            if bcrypt::verify(payload.password.as_bytes(), &user.password).ok() == Some(true) {
+                let claims = Claims {
+                    sub: user.email.clone().expect("Email missing in DB"),
+                    role: user.role.clone().into(),
+                    exp: (chrono::Utc::now() + chrono::Duration::minutes(10)).timestamp() as usize,
+                };
+        
+                let token = encode(
+                    &Header::default(),
+                    &claims,
+                    &EncodingKey::from_secret(state.config.jwt_secret.as_ref()),
+                )
+                .unwrap();
+        
+                return (StatusCode::OK, Json(LoginResponse { token })).into_response();
+            } else {
+                return (
+                    StatusCode::UNAUTHORIZED,
+                    Json(json!({"error": "Invalid credentials"})),
+                )
+                    .into_response();
+            }
         } else {
-            (
+            return (
                 StatusCode::UNAUTHORIZED,
                 Json(json!({"error": "Invalid credentials"})),
             )
+                .into_response();
         }
-    } else {
-        (
-            StatusCode::UNAUTHORIZED,
-            Json(json!({"error": "Invalid credentials"})),
-        )
+      
     }
-}
-
+    
 #[utoipa::path(
     post,
     path = "/refresh-token",
@@ -152,15 +158,19 @@ pub async fn refresh_token(
     });
     if let Some(refresh_token) = refresh_token {
         let mut store = REFRESH_TOKENS.lock().unwrap();
-        if let Some(email) = store.remove(&refresh_token) {
-            // Issue new tokens
+        if let Some(email) = store.remove(&refresh_token){
+
             let users = state.users.lock().unwrap();
-            if let Some(user) = users.iter().find(|u| u.email == email) {
+            // Issue new tokens
+            if let Some(user) = users.iter().find(|u| u.email.as_ref().map(|s| s == &email).unwrap_or(false)) {
+
+
                 let claims = Claims {
-                    sub: user.email.clone(),
-                    role: user.role.clone(),
+                    sub: user.email.clone().expect("Email missing in DB"),
+                    role: user.role.clone().into(),
                     exp: (chrono::Utc::now() + chrono::Duration::minutes(10)).timestamp() as usize,
                 };
+
                 let config = state.config.clone();
                 let token = encode(
                     &Header::default(),
