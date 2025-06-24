@@ -20,4 +20,17 @@ export class ProtectedService {
             },
         });
     }
+    /**
+     * @returns User Current user info
+     * @throws ApiError
+     */
+    public static profileRoute(): CancelablePromise<User> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/profile',
+            errors: {
+                401: `Unauthorized`,
+            },
+        });
+    }
 }

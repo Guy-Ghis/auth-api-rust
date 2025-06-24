@@ -6,7 +6,7 @@ use utoipa::OpenApi;
 use crate::models::{Role, User};
 
 #[derive(OpenApi)]
-#[openapi(paths(admin_route), components(schemas(User)))]
+#[openapi(paths(admin_route, profile_route), components(schemas(User)))]
 pub struct ProtectedApi;
 
 #[utoipa::path(
@@ -28,4 +28,17 @@ pub async fn admin_route(Extension(user): Extension<Arc<User>>) -> impl IntoResp
         )
             .into_response()
     }
+}
+
+#[utoipa::path(
+    get,
+    path = "/profile",
+    responses(
+        (status = 200, description = "Current user info", body = User),
+        (status = 401, description = "Unauthorized")
+    ),
+    security(("api_key" = []))
+)]
+pub async fn profile_route(Extension(user): Extension<Arc<User>>) -> impl IntoResponse {
+    (StatusCode::OK, Json(user)).into_response()
 }

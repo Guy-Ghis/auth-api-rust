@@ -11,6 +11,15 @@ function getTokenExpiry(token: string): number | null {
   }
 }
 
+function getUserRole(token: string): string | null {
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload.role || null;
+  } catch {
+    return null;
+  }
+}
+
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -34,7 +43,13 @@ export default function Login() {
           navigate("/login");
         }, expiry - Date.now());
       }
-      navigate("/profile");
+      // Redirect based on role
+      const role = getUserRole(res.token);
+      if (role === "Admin") {
+        navigate("/admin");
+      } else {
+        navigate("/profile");
+      }
     } catch {
       setError("Invalid credentials");
     }

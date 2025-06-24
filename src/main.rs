@@ -37,6 +37,7 @@ async fn main() {
         paths(
             auth::login,
             protected::admin_route,
+            protected::profile_route,
             auth::register,
             auth::refresh_token
         ),
@@ -56,7 +57,7 @@ async fn main() {
 
     let cors = CorsLayer::new()
         .allow_origin(
-            "https://auth-api-rust-two.vercel.app"
+            "https://auth-api-rust-o4brnwl0s-tissong-guy-ghislains-projects.vercel.app"
                 .parse::<HeaderValue>()
                 .unwrap(),
         )
@@ -76,6 +77,7 @@ async fn main() {
         .route("/login", post(auth::login))
         .route("/register", post(auth::register))
         .route("/refresh-token", post(auth::refresh_token))
+        .route("/profile", get(protected::profile_route))
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .layer(cors)
         .with_state(state);
