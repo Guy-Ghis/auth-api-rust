@@ -3,7 +3,6 @@
 @tailwind utilities;
 
 body {
-  @apply bg-primary text-light-text;
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   min-height: 100vh;
 }

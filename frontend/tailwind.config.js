@@ -1,15 +1,21 @@
-/** @type {import('tailwindcss').Config} */
+// tailwind.config.js
 export default {
-  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  content: ['./src/**/*.{js,jsx,ts,tsx}'],
   theme: {
     extend: {
       colors: {
-        primary: '#1a202c',
-        secondary: '#2d3748',
-        accent: '#4a5568',
-        highlight: '#38b2ac',
-        'light-text': '#edf2f7',
-        'dark-text': '#a0aec0',
+        primary: '#ffffff',
+        secondary: '#f9f9f9',
+        accent: '#e0e0e0',
+        highlight: '#007bff', // Primary accent color
+        'light-text': '#213547',
+        'dark-text': '#333333',
+      },
+      borderRadius: {
+        lg: '12px',
+      },
+      boxShadow: {
+        soft: '0 4px 6px rgba(0, 0, 0, 0.1)',
       },
     },
   },
