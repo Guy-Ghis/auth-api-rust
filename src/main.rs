@@ -66,16 +66,24 @@ async fn main() {
 
     let cors = CorsLayer::very_permissive(); // Adjust for production
 
-    let app = Router::new()
-        .route("/admin", get(protected::admin_route))
+    // Public routes: no auth middleware
+    let public_routes = Router::new()
         .route("/login", post(auth::login))
         .route("/register", post(auth::register))
-        .route("/refresh-token", post(auth::refresh_token))
+        .route("/refresh-token", post(auth::refresh_token));
+
+    // Protected routes: with auth middleware
+    let protected_routes = Router::new()
+        .route("/admin", get(protected::admin_route))
         .route("/profile", get(protected::profile_route))
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
             auth_middleware,
-        ))
+        ));
+
+    let app = Router::new()
+        .merge(public_routes)
+        .merge(protected_routes)
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .layer(cors)
         .with_state(state);
