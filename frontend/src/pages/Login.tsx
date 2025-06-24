@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthService } from "../api";
+import type { Role } from '../api'
 
-function getTokenExpiry(token: string): number | null {
+function getDecodedToken(token: string): { role: Role, exp: number } | null {
   try {
     const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload.exp ? payload.exp * 1000 : null;
+    return { role: payload.role, exp: payload.exp };
   } catch {
     return null;
   }
@@ -22,53 +23,60 @@ export default function Login() {
     setError("");
     try {
       const res = await AuthService.login({ email, password });
-      // Store token and expiry in sessionStorage
-      sessionStorage.setItem("token", res.token);
-      const expiry = getTokenExpiry(res.token);
-      if (expiry) sessionStorage.setItem("token_expiry", expiry.toString());
-      // Set auto-logout timer
-      if (expiry) {
+      const tokenData = getDecodedToken(res.token);
+
+      if (tokenData) {
+        sessionStorage.setItem("token", res.token);
+        sessionStorage.setItem("token_expiry", (tokenData.exp * 1000).toString());
+
         setTimeout(() => {
           sessionStorage.removeItem("token");
           sessionStorage.removeItem("token_expiry");
           navigate("/login");
-        }, expiry - Date.now());
+        }, tokenData.exp * 1000 - Date.now());
+
+        if (tokenData.role === 'Admin') {
+          navigate("/admin");
+        } else {
+          navigate("/profile");
+        }
+      } else {
+        setError("Invalid token received");
       }
-      // Redirect based on role
-      // For now, redirect all users to profile since we don't have an admin page
-      navigate("/profile");
     } catch {
       setError("Invalid credentials");
     }
   };
 
   return (
-    <div className="flex items-center justify-center mt-16">
-      <div className="w-full max-w-md p-8 space-y-6 bg-secondary rounded-lg shadow-lg">
-        <h2 className="text-3xl font-bold text-center text-light-text">Login</h2>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block mb-2 text-sm font-bold text-dark-text">Email</label>
+    <div className="form-container">
+      <div className="form-wrapper">
+        <h2 className="form-title">Login</h2>
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label className="form-label">Email</label>
             <input
               type="email"
-              className="w-full px-4 py-2 text-light-text bg-primary border border-accent rounded-lg focus:outline-none focus:ring-2 focus:ring-highlight"
+              className="form-input"
               value={email}
-              onChange={e => setEmail(e.target.value)}
+              onChange={(e) => setEmail(e.target.value)}
               required
             />
           </div>
-          <div>
-            <label className="block mb-2 text-sm font-bold text-dark-text">Password</label>
+          <div className="form-group">
+            <label className="form-label">Password</label>
             <input
               type="password"
-              className="w-full px-4 py-2 text-light-text bg-primary border border-accent rounded-lg focus:outline-none focus:ring-2 focus:ring-highlight"
+              className="form-input"
               value={password}
-              onChange={e => setPassword(e.target.value)}
+              onChange={(e) => setPassword(e.target.value)}
               required
             />
           </div>
-          {error && <div className="text-red-400 text-center">{error}</div>}
-          <button type="submit" className="w-full py-2 px-4 bg-highlight text-primary font-bold rounded-lg hover:bg-teal-400 transition-colors duration-300">Login</button>
+          {error && <div className="form-error">{error}</div>}
+          <button type="submit" className="form-button">
+            Login
+          </button>
         </form>
       </div>
     </div>

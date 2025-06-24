@@ -61,15 +61,15 @@ export default function UserProfile() {
   }, [navigate]);
 
   if (error) return (
-    <div className="flex items-center justify-center mt-16">
-      <div className="w-full max-w-md p-8 space-y-6 bg-secondary rounded-lg shadow-lg text-red-400">
+    <div className="error-message">
+      <div className="message-box">
         {error}
       </div>
     </div>
   );
   if (!user) return (
-    <div className="flex items-center justify-center mt-16">
-      <div className="w-full max-w-md p-8 space-y-6 bg-secondary rounded-lg shadow-lg">
+    <div className="loading-message">
+      <div className="message-box">
         Loading...
       </div>
     </div>
@@ -77,24 +77,24 @@ export default function UserProfile() {
 
 
   return (
-    <div className="flex items-center justify-center mt-16">
-      <div className="w-full max-w-md p-8 space-y-6 bg-secondary rounded-lg shadow-lg">
-        <h2 className="text-3xl font-bold text-center text-light-text">User Profile</h2>
-        <div className="space-y-4 text-light-text">
-          <div className="flex justify-between border-b border-accent pb-2">
-            <span className="font-bold text-dark-text">Email:</span>
+    <div className="profile-container">
+      <div className="profile-wrapper">
+        <h2 className="profile-title">User Profile</h2>
+        <div className="profile-info">
+          <div className="profile-info-item">
+            <span className="profile-info-label">Email:</span>
             <span>{user.email}</span>
           </div>
-          <div className="flex justify-between border-b border-accent pb-2">
-            <span className="font-bold text-dark-text">First Name:</span>
+          <div className="profile-info-item">
+            <span className="profile-info-label">First Name:</span>
             <span>{user.first_name}</span>
           </div>
-          <div className="flex justify-between border-b border-accent pb-2">
-            <span className="font-bold text-dark-text">Last Name:</span>
+          <div className="profile-info-item">
+            <span className="profile-info-label">Last Name:</span>
             <span>{user.last_name}</span>
           </div>
-          <div className="flex justify-between">
-            <span className="font-bold text-dark-text">Role:</span>
+          <div className="profile-info-item">
+            <span className="profile-info-label">Role:</span>
             <span>{user.role}</span>
           </div>
         </div>

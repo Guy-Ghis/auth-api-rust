@@ -25,53 +25,53 @@ export default function Register() {
   };
 
   return (
-    <div className="flex items-center justify-center mt-16">
-      <div className="w-full max-w-md p-8 space-y-6 bg-secondary rounded-lg shadow-lg">
-        <h2 className="text-3xl font-bold text-center text-light-text">Register</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block mb-2 text-sm font-bold text-dark-text">First Name</label>
+    <div className="form-container">
+      <div className="form-wrapper">
+        <h2 className="form-title">Register</h2>
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label className="form-label">First Name</label>
             <input
               type="text"
-              className="w-full px-4 py-2 text-light-text bg-primary border border-accent rounded-lg focus:outline-none focus:ring-2 focus:ring-highlight"
+              className="form-input"
               value={firstName}
               onChange={e => setFirstName(e.target.value)}
               required
             />
           </div>
-          <div>
-            <label className="block mb-2 text-sm font-bold text-dark-text">Last Name</label>
+          <div className="form-group">
+            <label className="form-label">Last Name</label>
             <input
               type="text"
-              className="w-full px-4 py-2 text-light-text bg-primary border border-accent rounded-lg focus:outline-none focus:ring-2 focus:ring-highlight"
+              className="form-input"
               value={lastName}
               onChange={e => setLastName(e.target.value)}
               required
             />
           </div>
-          <div>
-            <label className="block mb-2 text-sm font-bold text-dark-text">Email</label>
+          <div className="form-group">
+            <label className="form-label">Email</label>
             <input
               type="email"
-              className="w-full px-4 py-2 text-light-text bg-primary border border-accent rounded-lg focus:outline-none focus:ring-2 focus:ring-highlight"
+              className="form-input"
               value={email}
               onChange={e => setEmail(e.target.value)}
               required
             />
           </div>
-          <div>
-            <label className="block mb-2 text-sm font-bold text-dark-text">Password</label>
+          <div className="form-group">
+            <label className="form-label">Password</label>
             <input
               type="password"
-              className="w-full px-4 py-2 text-light-text bg-primary border border-accent rounded-lg focus:outline-none focus:ring-2 focus:ring-highlight"
+              className="form-input"
               value={password}
               onChange={e => setPassword(e.target.value)}
               required
             />
           </div>
-          {error && <div className="text-red-400 text-center">{error}</div>}
-          {success && <div className="text-green-400 text-center">{success}</div>}
-          <button type="submit" className="w-full py-2 px-4 bg-highlight text-primary font-bold rounded-lg hover:bg-teal-400 transition-colors duration-300">Register</button>
+          {error && <div className="form-error">{error}</div>}
+          {success && <div className="form-success">{success}</div>}
+          <button type="submit" className="form-button">Register</button>
         </form>
       </div>
     </div>

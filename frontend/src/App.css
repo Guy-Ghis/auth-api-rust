@@ -40,3 +40,52 @@
 .read-the-docs {
   color: #888;
 }
+
+#app {
+  background-color: var(--primary-color);
+  color: var(--light-text-color);
+  min-height: 100vh;
+}
+
+header {
+  background-color: var(--secondary-color);
+  padding: 1rem 0;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+nav.container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--highlight-color);
+}
+
+.nav-links {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.nav-links a {
+  color: var(--light-text-color);
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.nav-links a:hover {
+  color: var(--highlight-color);
+}
+
+main.container {
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+}

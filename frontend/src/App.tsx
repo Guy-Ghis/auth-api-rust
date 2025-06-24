@@ -5,19 +5,19 @@ import UserProfile from "./pages/UserProfile";
 
 function App() {
   return (
-    <div className="bg-primary text-light-text min-h-screen">
+    <div id="app">
       <Router>
-        <header className="bg-secondary">
-          <nav className="container mx-auto px-6 py-4 flex justify-between items-center">
-            <div className="text-2xl font-bold text-highlight">Auth Portal</div>
-            <div className="flex gap-6">
-              <Link to="/login" className="text-light-text hover:text-highlight transition-colors duration-300">Login</Link>
-              <Link to="/register" className="text-light-text hover:text-highlight transition-colors duration-300">Register</Link>
-              <Link to="/profile" className="text-light-text hover:text-highlight transition-colors duration-300">Profile</Link>
+        <header>
+          <nav className="container">
+            <div className="logo">Auth Portal</div>
+            <div className="nav-links">
+              <Link to="/login">Login</Link>
+              <Link to="/register">Register</Link>
+              <Link to="/profile">Profile</Link>
             </div>
           </nav>
         </header>
-        <main className="container mx-auto p-6">
+        <main className="container">
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
