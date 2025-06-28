@@ -102,7 +102,7 @@ pub async fn login(
             if bcrypt::verify(payload.password.as_bytes(), &user.password).ok() == Some(true) {
                 let claims = Claims {
                     sub: user.email.clone().expect("Email missing in DB"),
-                    role: user.role.clone().into(),
+                    role: user.role.clone(),
                     exp: (chrono::Utc::now() + chrono::Duration::minutes(10)).timestamp() as usize,
                 };
         
@@ -167,7 +167,7 @@ pub async fn refresh_token(
 
                 let claims = Claims {
                     sub: user.email.clone().expect("Email missing in DB"),
-                    role: user.role.clone().into(),
+                    role: user.role.clone(),
                     exp: (chrono::Utc::now() + chrono::Duration::minutes(10)).timestamp() as usize,
                 };
 

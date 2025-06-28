@@ -5,6 +5,7 @@ use std::{
 };
 
 use axum::{
+    http::{Method, HeaderValue},
     routing::{get, post},
     Router,
 };
@@ -53,7 +54,8 @@ async fn main() {
             models::User,
             models::Role,
             models::LoginRequest,
-            models::LoginResponse
+            models::LoginResponse,
+            models::user::RegisterRequest
         ))
     )]
     struct ApiDoc;
@@ -64,10 +66,45 @@ async fn main() {
         users: Arc::new(Mutex::new(vec![])),
     };
 
-    let cors = CorsLayer::very_permissive(); // Adjust for production
+    // CORS configuration to handle preflight requests properly
+    let cors = CorsLayer::new()
+        // Allow specific origins
+        .allow_origin([
+            "https://auth-api-frontend.vercel.app".parse::<HeaderValue>().unwrap(),
+            "http://localhost:3000".parse::<HeaderValue>().unwrap(),
+            "http://localhost:5173".parse::<HeaderValue>().unwrap(),
+            "http://127.0.0.1:3000".parse::<HeaderValue>().unwrap(),
+            "http://127.0.0.1:5173".parse::<HeaderValue>().unwrap(),
+        ])
+        // Allow all necessary methods including OPTIONS for preflight
+        .allow_methods([
+            Method::GET, 
+            Method::POST, 
+            Method::PUT, 
+            Method::DELETE, 
+            Method::OPTIONS,
+            Method::HEAD
+        ])
+        // Allow all necessary headers
+        .allow_headers([
+            axum::http::header::AUTHORIZATION,
+            axum::http::header::ACCEPT,
+            axum::http::header::CONTENT_TYPE,
+            axum::http::header::ORIGIN,
+            axum::http::header::ACCESS_CONTROL_REQUEST_METHOD,
+            axum::http::header::ACCESS_CONTROL_REQUEST_HEADERS,
+        ])
+        // Allow credentials for authentication
+        .allow_credentials(true);
+
+    // Health check handler
+    async fn health_check() -> &'static str {
+        "OK"
+    }
 
     // Public routes: no auth middleware
     let public_routes = Router::new()
+        .route("/health", get(health_check))
         .route("/login", post(auth::login))
         .route("/register", post(auth::register))
         .route("/refresh-token", post(auth::refresh_token));
@@ -85,8 +122,8 @@ async fn main() {
         .merge(public_routes)
         .merge(protected_routes)
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
-        .layer(cors)
-        .with_state(state);
+        .with_state(state)
+        .layer(cors);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, app).await.unwrap();
