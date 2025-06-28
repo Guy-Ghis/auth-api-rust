@@ -5,15 +5,18 @@ use std::{
 };
 
 use axum::{
-    http::{Method, HeaderValue},
+    middleware as axum_middleware,
     routing::{get, post},
-    Router,
+    Json, Router,
 };
+use serde_json::json;
 use sqlx::postgres::PgPoolOptions;
-use tower_http::cors::CorsLayer;
+use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
+use tracing::info;
 
+pub mod cors_middleware;
 pub mod middleware;
 pub mod models;
 pub mod routes;
@@ -33,6 +36,10 @@ pub struct AppState {
 
 #[tokio::main]
 async fn main() {
+    // Initialize logging
+    tracing_subscriber::fmt::init();
+    
+    info!("Starting Auth API server...");
     dotenvy::dotenv().ok();
     let db_pool = PgPoolOptions::new()
         .max_connections(5)
@@ -66,45 +73,44 @@ async fn main() {
         users: Arc::new(Mutex::new(vec![])),
     };
 
-    // CORS configuration to handle preflight requests properly
-    let cors = CorsLayer::new()
-        // Allow specific origins
-        .allow_origin([
-            "https://auth-api-frontend.vercel.app".parse::<HeaderValue>().unwrap(),
-            "http://localhost:3000".parse::<HeaderValue>().unwrap(),
-            "http://localhost:5173".parse::<HeaderValue>().unwrap(),
-            "http://127.0.0.1:3000".parse::<HeaderValue>().unwrap(),
-            "http://127.0.0.1:5173".parse::<HeaderValue>().unwrap(),
-        ])
-        // Allow all necessary methods including OPTIONS for preflight
-        .allow_methods([
-            Method::GET, 
-            Method::POST, 
-            Method::PUT, 
-            Method::DELETE, 
-            Method::OPTIONS,
-            Method::HEAD
-        ])
-        // Allow all necessary headers
-        .allow_headers([
-            axum::http::header::AUTHORIZATION,
-            axum::http::header::ACCEPT,
-            axum::http::header::CONTENT_TYPE,
-            axum::http::header::ORIGIN,
-            axum::http::header::ACCESS_CONTROL_REQUEST_METHOD,
-            axum::http::header::ACCESS_CONTROL_REQUEST_HEADERS,
-        ])
-        // Allow credentials for authentication
-        .allow_credentials(true);
+    // CORS configuration - SIMPLIFIED for immediate fix
+    info!("Configuring CORS with very permissive settings...");
+    let cors = CorsLayer::very_permissive();
+    info!("CORS configured with very permissive settings");
 
     // Health check handler
     async fn health_check() -> &'static str {
         "OK"
     }
+    
+    // Debug endpoint for CORS configuration
+    async fn debug_cors() -> Json<serde_json::Value> {
+        let is_railway = std::env::var("RAILWAY_ENVIRONMENT").is_ok();
+        let port = std::env::var("PORT").unwrap_or_else(|_| "3000".to_string());
+        Json(json!({
+            "status": "CORS debug endpoint working",
+            "railway_environment": is_railway,
+            "port": port,
+            "cors_config": {
+                "allowed_origin": "*",
+                "allowed_methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+                "allowed_headers": ["authorization", "content-type", "accept", "origin"],
+                "credentials": true
+            },
+            "timestamp": chrono::Utc::now().to_rfc3339()
+        }))
+    }
+    
+    // Fallback handler for debugging
+    async fn fallback_handler(uri: axum::http::Uri) -> String {
+        info!("Unmatched route: {}", uri);
+        format!("No route found for: {}", uri)
+    }
 
     // Public routes: no auth middleware
     let public_routes = Router::new()
         .route("/health", get(health_check))
+        .route("/debug/cors", get(debug_cors))
         .route("/login", post(auth::login))
         .route("/register", post(auth::register))
         .route("/refresh-token", post(auth::refresh_token));
@@ -113,7 +119,7 @@ async fn main() {
     let protected_routes = Router::new()
         .route("/admin", get(protected::admin_route))
         .route("/profile", get(protected::profile_route))
-        .layer(axum::middleware::from_fn_with_state(
+        .layer(axum_middleware::from_fn_with_state(
             state.clone(),
             auth_middleware,
         ));
@@ -122,9 +128,19 @@ async fn main() {
         .merge(public_routes)
         .merge(protected_routes)
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
+        .fallback(fallback_handler)  // Add fallback for debugging
         .with_state(state)
-        .layer(cors);
+        .layer(axum_middleware::from_fn(cors_middleware::cors_middleware))  // Custom CORS middleware
+        .layer(TraceLayer::new_for_http())  // Add request tracing
+        .layer(cors);  // Tower CORS as backup
+    
+    info!("Application configured successfully");
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    // Use Railway's PORT environment variable or default to 3000
+    let port = std::env::var("PORT").unwrap_or_else(|_| "3000".to_string());
+    let bind_address = format!("0.0.0.0:{}", port);
+    
+    let listener = tokio::net::TcpListener::bind(&bind_address).await.unwrap();
+    info!("Server starting on {}", bind_address);
     axum::serve(listener, app).await.unwrap();
 }
