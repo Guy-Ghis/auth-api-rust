@@ -8,7 +8,6 @@ pub enum Role {
     User,
 }
 
-
 #[derive(Debug, Serialize, Deserialize, ToSchema, Clone)]
 pub struct User {
     pub id: i32,
