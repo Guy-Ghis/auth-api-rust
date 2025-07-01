@@ -12,7 +12,7 @@ use std::sync::Arc;
 
 use crate::{
     models::{Role, User},
-    AppState,
+    AppState, 
 };
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
