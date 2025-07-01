@@ -4,7 +4,7 @@ use std::sync::Arc;
 use utoipa::OpenApi;
 
 use crate::models::{Role, User};
- 
+
 #[derive(OpenApi)]
 #[openapi(paths(admin_route, profile_route), components(schemas(User)))]
 pub struct ProtectedApi;
@@ -19,7 +19,8 @@ pub struct ProtectedApi;
     security(("api_key" = []))
 )]
 pub async fn admin_route(Extension(user): Extension<Arc<User>>) -> impl IntoResponse {
-    if user.role == "Admin" {
+    let user_role = Role::from(user.role.clone());
+    if user_role == Role::Admin {
         (StatusCode::OK, Json(user)).into_response()
     } else {
         (
