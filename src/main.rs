@@ -5,12 +5,12 @@ use std::{
 };
 
 use axum::{
-    http::{HeaderValue, Method},
+    http::{header, HeaderValue, Method},
     routing::{get, post},
     Router,
 };
 use sqlx::postgres::PgPoolOptions;
-use tower_http::cors::{Any, CorsLayer};
+use tower_http::cors::CorsLayer;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -72,7 +72,7 @@ async fn main() {
                 .unwrap(),
         )
         .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
-        .allow_headers(Any)
+        .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION])
         .allow_credentials(true);
 
     let app = Router::new()
