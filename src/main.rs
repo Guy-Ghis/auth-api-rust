@@ -64,7 +64,15 @@ async fn main() {
         users: Arc::new(Mutex::new(vec![])),
     };
 
-    let cors = CorsLayer::very_permissive(); // Adjust for production
+    let cors = CorsLayer::new()
+        .allow_origin(
+            "https://auth-api-frontend-iota.vercel.app"
+                .parse::<HeaderValue>()
+                .unwrap(),
+        )
+        .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
+        .allow_headers(Any)
+        .allow_credentials(true);
 
     let app = Router::new()
         .route("/admin", get(protected::admin_route))
