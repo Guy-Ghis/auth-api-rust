@@ -5,11 +5,12 @@ use std::{
 };
 
 use axum::{
+    http::{HeaderValue, Method},
     routing::{get, post},
     Router,
 };
 use sqlx::postgres::PgPoolOptions;
-use tower_http::cors::CorsLayer;
+use tower_http::cors::{Any, CorsLayer};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
