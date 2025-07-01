@@ -6,14 +6,11 @@ use axum::{
     response::Response,
 };
 use jsonwebtoken::{decode, DecodingKey, Validation};
-use serde::{Deserialize, Serialize};
+use serde;
 use sqlx;
 use std::sync::Arc;
 
-use crate::{
-    models::{Role, User},
-    AppState, 
-};
+use crate::{models::User, AppState};
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Claims {
